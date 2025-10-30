@@ -9,7 +9,7 @@ on:
 env:
   ECR_REPOSITORY: extract-pdf-service
   IMAGE_TAG: latest
-  LAMBDA_FUNCTION_NAME: extract-pdf-service
+  LAMBDA_FUNCTION_NAME: extract-pdf-service-sqs
 
 jobs:
   deploy-lambda:
