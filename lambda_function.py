@@ -20,38 +20,51 @@ client = genai.Client(api_key=GEMINI_API_KEY)
 
 
 def update_feedback(job_id: str, data: dict, status: str):
-    """Update FeedbackPolling table via GraphQL mutation"""
-    print(f"[i] Updating feedback for jobId: {job_id} with status: {status}")
+    """Update Feedback table via GraphQL mutation"""
+    print(f"[i] Updating feedback for id: {job_id} with status: {status}")
+
     mutation = """
-    mutation UpdateFeedback($jobId: String!, $data: AWSJSON, $status: String!) {
-      updateFeedbackPolling(input: {jobId: $jobId, data: $data, status: $status}) {
-        jobId
+    mutation  updateFeedbackPolling($input: UpdateFeedbackPollingInput!) {
+      updateFeedbackPolling(input: $input) {
+        id
         data
         status
       }
     }
     """
+
     variables = {
-        "jobId": job_id,
-        "data": json.dumps(data) if data else {},
-        "status": status
+        "input": {
+            "id": job_id,
+            "data": json.dumps(data) if data else "{}",
+            "status": status
+        }
     }
+
     headers = {
         "Content-Type": "application/json",
         "x-api-key": GRAPHQL_API_KEY
     }
+
     try:
-        print(f"[i] Updating feedback for jobId: {job_id} with status: {status}")
-        requests.post(
+        response = requests.post(
             GRAPHQL_ENDPOINT,
             headers=headers,
             json={"query": mutation, "variables": variables}
         )
+        if response.status_code != 200:
+            print(f"[✗] GraphQL request failed: {response.status_code}")
+            print(response.text)
+            return "failed"
+
+        res_json = response.json()
+        print("[✓] Feedback updated successfully:", res_json)
         return "completed"
     except Exception as e:
         print(f"[✗] GraphQL update failed: {str(e)}")
         return "failed"
-    
+
+   
 
 def lambda_handler(event, context):
     """Lambda entry point triggered by SQS"""
