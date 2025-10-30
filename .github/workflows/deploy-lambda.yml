@@ -1,0 +1,55 @@
+name: Deploy Lambda Function from ECR Image
+
+on:
+  workflow_run:
+    workflows: ["Build and Push Docker Image to ECR"]
+    types:
+      - completed
+
+env:
+  ECR_REPOSITORY: extract-pdf-service
+  IMAGE_TAG: latest
+  LAMBDA_FUNCTION_NAME: extract-pdf-service
+
+jobs:
+  deploy-lambda:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Get ECR image URI
+        id: get-ecr-uri
+        run: |
+          ECR_URI=$(aws ecr describe-repositories \
+            --repository-names $ECR_REPOSITORY \
+            --query "repositories[0].repositoryUri" \
+            --output text)
+          echo "ECR_URI=$ECR_URI" >> $GITHUB_ENV
+
+      - name: Deploy Lambda (create or update)
+        run: |
+          IMAGE_URI=${{ env.ECR_URI }}:${{ env.IMAGE_TAG }}
+          
+          if aws lambda get-function --function-name $LAMBDA_FUNCTION_NAME >/dev/null 2>&1; then
+            echo "Updating existing Lambda function..."
+            aws lambda update-function-code \
+              --function-name $LAMBDA_FUNCTION_NAME \
+              --image-uri $IMAGE_URI
+          else
+            echo "Creating new Lambda function..."
+            aws lambda create-function \
+              --function-name $LAMBDA_FUNCTION_NAME \
+              --package-type Image \
+              --code ImageUri=$IMAGE_URI \
+              --role arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/lambda-extract-pdf-exec-role\
+              --timeout 60 \
+              --memory-size 512 \
+              --environment "Variables={GEMINI_AI_API_KEY=${{ secrets.GEMINI_AI_API_KEY }},GRAPHQL_ENDPOINT=${{ secrets.GRAPHQL_ENDPOINT }},GRAPHQL_API_KEY=${{ secrets.GRAPHQL_API_KEY }}}"
+          fi
