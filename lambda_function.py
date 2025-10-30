@@ -21,6 +21,7 @@ client = genai.Client(api_key=GEMINI_API_KEY)
 
 def update_feedback(job_id: str, data: dict, status: str):
     """Update FeedbackPolling table via GraphQL mutation"""
+    print(f"[i] Updating feedback for jobId: {job_id} with status: {status}")
     mutation = """
     mutation UpdateFeedback($jobId: String!, $data: AWSJSON, $status: String!) {
       updateFeedbackPolling(input: {jobId: $jobId, data: $data, status: $status}) {
@@ -39,14 +40,17 @@ def update_feedback(job_id: str, data: dict, status: str):
         "Content-Type": "application/json",
         "x-api-key": GRAPHQL_API_KEY
     }
-    response = requests.post(
-        GRAPHQL_ENDPOINT,
-        headers=headers,
-        json={"query": mutation, "variables": variables}
-    )
-    if response.status_code != 200:
-        raise Exception(f"GraphQL update failed: {response.text}")
-    return response.json()
+    try:
+        print(f"[i] Updating feedback for jobId: {job_id} with status: {status}")
+        requests.post(
+            GRAPHQL_ENDPOINT,
+            headers=headers,
+            json={"query": mutation, "variables": variables}
+        )
+        return "completed"
+    except Exception as e:
+        print(f"[✗] GraphQL update failed: {str(e)}")
+        return "failed"
     
 
 def lambda_handler(event, context):
