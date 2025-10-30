@@ -111,7 +111,7 @@ def lambda_handler(event, context):
 
     try:
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-2.0-flash-001",
             contents=[
                 Part.from_bytes(data=content, mime_type="application/pdf"),
                 prompt

@@ -49,7 +49,7 @@ jobs:
               --package-type Image \
               --code ImageUri=$IMAGE_URI \
               --role arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/lambda-extract-pdf-exec-role\
-              --timeout 60 \
-              --memory-size 512 \
-              --environment "Variables={GEMINI_AI_API_KEY=${{ secrets.GEMINI_AI_API_KEY }},GRAPHQL_ENDPOINT=${{ secrets.GRAPHQL_ENDPOINT }},GRAPHQL_API_KEY=${{ secrets.GRAPHQL_API_KEY }}}"
+              --timeout 120 \
+              --memory-size 1024 \
+              --environment "Variables={GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }},GRAPHQL_ENDPOINT=${{ secrets.GRAPHQL_ENDPOINT }},GRAPHQL_API_KEY=${{ secrets.GRAPHQL_API_KEY }}}"
           fi

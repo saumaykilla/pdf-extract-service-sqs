@@ -1,7 +1,7 @@
 # Use AWS Lambda Python 3.13 as the base image
 FROM public.ecr.aws/lambda/python:3.13
 # Accept API key as a build argument
-ARG GEMINI_AI_API_KEY
+ARG GEMINI_API_KEY
 ARG GRAPHQL_ENDPOINT
 ARG GRAPHQL_API_KEY
 ENV GEMINI_API_KEY=$GEMINI_API_KEY
