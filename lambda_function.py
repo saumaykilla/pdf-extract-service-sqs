@@ -104,7 +104,7 @@ def lambda_handler(event, context):
                 "response_schema": Resume  # Pydantic model class
             }
         )
-        result_data = response.to_dict()  # Convert Gemini response to dict
+        result_data = json.loads(response.text)  # Convert Gemini response to dict
         print("[✓] Gemini processing successful")
         update_feedback(job_id, result_data, "success")
     except Exception as e:
