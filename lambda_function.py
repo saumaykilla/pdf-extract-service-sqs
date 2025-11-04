@@ -4,6 +4,7 @@ import os
 from google import genai
 from google.genai.types import Part
 from dotenv import load_dotenv
+import fitz
 import requests
 
 from models.ExtractResumeModel import Resume
@@ -64,7 +65,20 @@ def update_feedback(job_id: str, data: dict, status: str):
         print(f"[✗] GraphQL update failed: {str(e)}")
         return "failed"
 
-   
+def extract_text_with_links(pdf_path):
+    doc = fitz.open(pdf_path)
+    result = ""
+
+    for page_number, page in enumerate(doc, start=1):
+        text = page.get_text("text")
+        result += f"\n--- Page {page_number} ---\n{text}\n"
+
+        # Extract clickable hyperlinks
+        for link in page.get_links():
+            if "uri" in link:
+                result += f"Link found: {link['uri']}\n"
+
+    return result.strip()
 
 def lambda_handler(event, context):
     """Lambda entry point triggered by SQS"""
@@ -92,19 +106,11 @@ def lambda_handler(event, context):
         return
 
     # Read file content
-    try:
-        with open(local_path, "rb") as f:
-            content = f.read()
-        if not content:
-            raise ValueError("File is empty")
-    except Exception as e:
-        print(f"[✗] Failed to read PDF: {str(e)}")
-        update_feedback(job_id, {}, "failed")
-        return
+    pdf_content = extract_text_with_links(local_path)
 
     # Gemini prompt
-    prompt = """
-    Extract the resume details from the given PDF. 
+    prompt = f"""
+    Extract the resume details from the given PDF content : {pdf_content}. 
     If a date field contains present/undefined, set it as null. 
     For descriptions and summary, set the string as HTML capturing styling and lists.
     """
@@ -113,7 +119,6 @@ def lambda_handler(event, context):
         response = client.models.generate_content(
             model="gemini-2.0-flash",
             contents=[
-                Part.from_bytes(data=content, mime_type="application/pdf"),
                 prompt
             ],
             config={
